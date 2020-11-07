@@ -5,6 +5,7 @@
 #include <stdio.h>
 
 extern void predict_classifier(char *datacfg, char *cfgfile, char *weightfile, char *filename, int top);
+extern void test_detector_folder(char *datacfg, char *cfgfile, char *weightfile, char *input_folder, char *output_folder, float thresh, float hier_thresh);
 extern void test_detector(char *datacfg, char *cfgfile, char *weightfile, char *filename, float thresh, float hier_thresh, char *outfile, int fullscreen);
 extern void run_yolo(int argc, char **argv);
 extern void run_detector(int argc, char **argv);
@@ -434,7 +435,12 @@ int main(int argc, char **argv)
         char *filename = (argc > 4) ? argv[4]: 0;
         char *outfile = find_char_arg(argc, argv, "-out", 0);
         int fullscreen = find_arg(argc, argv, "-fullscreen");
-        test_detector("cfg/coco.data", argv[2], argv[3], filename, thresh, .5, outfile, fullscreen);
+        test_detector("cfg/my_data.data", argv[2], argv[3], filename, thresh, .5, outfile, fullscreen);
+    } else if (0 == strcmp(argv[1], "detect_folder")){
+        float thresh = find_float_arg(argc, argv, "-thresh", .24); // default threshold is 0.24xinhijanxinjianxinjianrawjhl  
+        char *filename = (argc > 4) ? argv[4]: 0;
+        char *output_folder = (argc > 5) ? argv[5]: 0;
+        test_detector_folder("cfg/coco.data", argv[2], argv[3], filename, output_folder, thresh, .5);
     } else if (0 == strcmp(argv[1], "cifar")){
         run_cifar(argc, argv);
     } else if (0 == strcmp(argv[1], "go")){

@@ -1,0 +1,3 @@
+/home/xzw/WorkSpace/darknet/test-so/build/CMakeFiles/rebuild_cache.dir
+/home/xzw/WorkSpace/darknet/test-so/build/CMakeFiles/edit_cache.dir
+/home/xzw/WorkSpace/darknet/test-so/build/CMakeFiles/yolo_test.dir

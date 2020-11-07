@@ -1,4 +1,6 @@
 #include "darknet.h"
+#include <unistd.h>
+
 
 static int coco_ids[] = {1,2,3,4,5,6,7,8,9,10,11,13,14,15,16,17,18,19,20,21,22,23,24,25,27,28,31,32,33,34,35,36,37,38,39,40,41,42,43,44,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,67,70,72,73,74,75,76,77,78,79,80,81,82,84,85,86,87,88,89,90};
 
@@ -617,6 +619,103 @@ void test_detector(char *datacfg, char *cfgfile, char *weightfile, char *filenam
         free_image(im);
         free_image(sized);
         if (filename) break;
+    }
+}
+
+void test_detector_folder(char *datacfg, char *cfgfile, char *weightfile, char *input_folder, char *output_folder, float thresh, float hier_thresh)
+{
+    if( !(input_folder && output_folder) ){
+    printf("Please Provide Image Folder");
+    return;
+    }
+    
+    list *options = read_data_cfg(datacfg);
+    char *name_list = option_find_str(options, "names", "data/names.list");
+    char **names = get_labels(name_list);        
+     
+    
+    image **alphabet = load_alphabet();
+    network *net = load_network(cfgfile, weightfile, 0);
+    set_batch_network(net, 1);
+    srand(2222222);
+    double time;
+    
+    char buff[256],buff2[256];
+    char *input_img_name = buff;
+    char *output_file = buff2;    
+    float nms=.45;    
+    
+    FILE *fp;
+    int save_result_txt=1;
+
+    
+    int img_counter=-1;
+    while(1)
+    {
+        img_counter++;
+        strncpy(input_img_name, input_folder, 256);
+        char frame_index_c[256];
+//      sprintf(frame_index_c,"/frame%04d.jpg",img_counter);     // Important!!! change file name
+        //sprintf(frame_index_c,"/%04d_rgb_raw.jpg",img_counter);  // format into 6 digit
+        //sprintf(frame_index_c,"/%d.png",img_counter);
+        sprintf(frame_index_c,"/%04d.png",img_counter);
+
+        strcat(input_img_name,frame_index_c);
+    
+        if( access( input_img_name, F_OK ) == -1 ) {
+            printf("Cannot find image %s \n",input_img_name);
+            break;
+        }
+        
+        strncpy(output_file, output_folder, 256);
+        if (save_result_txt==1)
+        {
+          char frame_index_c3[256];
+          sprintf(frame_index_c3,"_txts/%04d_yolo2_%.2f.txt",img_counter,thresh);  // format into 6 digit     
+          char * result_file=strcat(output_file,frame_index_c3);
+    //    printf("save to txt:   %s \n",result_file);
+          fp = fopen(result_file,"w+");
+          if (fp==NULL)
+          {
+            printf("Cannot save to file %s \n",result_file);
+            break;
+          }
+        }
+    
+        strncpy(output_file, output_folder, 256);
+        char frame_index_c2[256];
+        sprintf(frame_index_c2,"/%04d_yolo2_%.2f",img_counter,thresh);  // format into 6 digit
+        strcat(output_file,frame_index_c2);
+
+    
+        image im = load_image_color(input_img_name,0,0);
+        image sized = letterbox_image(im, net->w, net->h);
+        layer l = net->layers[net->n-1];
+
+        float *X = sized.data;
+        time=what_time_is_it_now();
+        network_predict(net, X);
+        if (img_counter%10==0)
+            printf("%s: Predicted in %f seconds.\n", input_img_name, what_time_is_it_now()-time);
+        int nboxes = 0;
+        detection *dets = get_network_boxes(net, im.w, im.h, thresh, hier_thresh, 0, 1, &nboxes);
+        //printf("detect%d objects.\n", nboxes);
+        if (nms) do_nms_sort(dets, nboxes, l.classes, nms);
+
+        if (save_result_txt==0)
+            draw_detections(im, dets, nboxes, thresh, names, alphabet, l.classes);  // if want to show classes, prob in terminal. See inside function.
+        else
+            draw_save_detections(im, dets, nboxes, thresh, names, alphabet, l.classes,fp);
+
+        free_detections(dets, nboxes);
+        save_image(im, output_file);
+
+
+        free_image(im);
+        free_image(sized);
+    
+        if (save_result_txt==1)
+          fclose(fp);
     }
 }
 
